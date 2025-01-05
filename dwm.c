@@ -61,7 +61,7 @@
 
 /* enums */
 enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
-enum { SchemeNorm, SchemeSel }; /* color schemes */
+enum { SchemeNorm, SchemeSel, SchemeN /* keeplast */ }; /* color schemes */
 enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
        NetWMWindowTypeDialog, NetClientList, NetClientInfo, NetLast }; /* EWMH atoms */
@@ -215,6 +215,7 @@ static void sighup(int unused);
 static void sigterm(int unused);
 
 static void setmfact(const Arg *arg);
+static void setscheme(const Arg *arg);
 static void setup(void);
 static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
@@ -281,7 +282,7 @@ static Atom wmatom[WMLast], netatom[NetLast];
 static int restart = 0;
 static int running = 1;
 static Cur *cursor[CurLast];
-static Clr **scheme;
+static Clr **schemes, **scheme;
 static Display *dpy;
 static Drw *drw;
 static Monitor *mons, *selmon;
@@ -516,9 +517,9 @@ cleanup(void)
 		cleanupmon(mons);
 	for (i = 0; i < CurLast; i++)
 		drw_cur_free(drw, cursor[i]);
-	for (i = 0; i < LENGTH(colors) + 1; i++)
-		free(scheme[i]);
-	free(scheme);
+	for (i = 0; i < LENGTH(colors) * SchemeN; i++)
+		free(schemes[i]);
+	free(schemes);
 	XDestroyWindow(dpy, wmcheckwin);
 	drw_free(drw);
 	XSync(dpy, False);
@@ -1793,9 +1794,24 @@ setmfact(const Arg *arg)
 }
 
 void
+setscheme(const Arg *arg)
+{
+	ptrdiff_t si = (scheme - schemes) + arg->i * SchemeN;
+
+	/* wrap around, won't work if (abs(arg->i) > LENGTH(colors)) */
+	if (si < 0)
+		si += LENGTH(colors) * SchemeN;
+	else if (si >= LENGTH(colors) * SchemeN)
+		si -= LENGTH(colors) * SchemeN;
+
+	scheme = &schemes[si];
+	drawbars();
+}
+
+void
 setup(void)
 {
-	int i;
+	int i, j;
 	XSetWindowAttributes wa;
 	Atom utf8string;
 	struct sigaction sa;
@@ -1821,7 +1837,7 @@ setup(void)
 	if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
 		die("no fonts could be loaded.");
 	lrpad = drw->fonts->h;
-	bh = drw->fonts->h + 2;
+	bh = user_bh ? user_bh : drw->fonts->h + 2;
 	updategeom();
 	/* init atoms */
 	utf8string = XInternAtom(dpy, "UTF8_STRING", False);
@@ -1844,10 +1860,12 @@ setup(void)
 	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
 	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
 	/* init appearance */
-	scheme = ecalloc(LENGTH(colors) + 1, sizeof(Clr *));
-	scheme[LENGTH(colors)] = drw_scm_create(drw, colors[0], 3);
-	for (i = 0; i < LENGTH(colors); i++)
-		scheme[i] = drw_scm_create(drw, colors[i], 3);
+	schemes = ecalloc(LENGTH(colors), SchemeN * sizeof(Clr *));
+	for (j = LENGTH(colors) - 1; j >= 0; j--) {
+		scheme = &schemes[j * SchemeN];
+		for (i = 0; i < SchemeN; i++)
+			scheme[i] = drw_scm_create(drw, colors[j][i], 3);
+	}
 	/* init bars */
 	updatebars();
 	updatestatus();

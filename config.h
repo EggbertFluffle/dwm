@@ -6,20 +6,37 @@
 /* appearance */
 static const unsigned int borderpx  = 2;        /* border pixel of windows */
 static const unsigned int gappx     = 8;        /* gaps between windows */
-static const unsigned int snap      = 32;       /* snap pixel */
+static const unsigned int snap      = 32; /* light */       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
-static const char *fonts[]          = { "minecraft:size=18" };
-static const char dmenufont[]       = "mineacrft :size=18";
-static const char col_gray1[]       = "#282828";
-static const char col_gray2[]       = "#504945";
-static const char col_gray3[]       = "#bdae93";
-static const char col_gray4[]       = "#ebdbb2";
-static const char col_cyan[]        = "#cc241d";
-static const char *colors[][3]      = {
-	/*               fg         bg         border   */
-	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
-	[SchemeSel]  = { col_gray4, col_gray2,  col_cyan  },
+static const int user_bh            = 0;        /* 0 means that dwm will calculate bar height, >= 1 means dwm will user_bh as bar height */
+static const char *fonts[]          = { "minecraft :size=16" };
+static const char dmenufont[]       = "Monocraft :size=16";
+
+static const char gruvboxred[] = "#fb4934";
+static const char gruvboxgreen[] = "#b8bb26";
+static const char gruvboxyellow[] = "#fabd2f";
+static const char gruvboxblue[] = "#83a598";
+static const char gruvboxpurple[] = "#d3896b";
+
+static const char gruvboxfg[] = "#ebdbb2";
+static const char gruvboxbg1[] = "#3c3836";
+static const char gruvboxbg2[] = "#504945";
+static const char gruvboxbg3[] = "#665c54";
+static const char gruvboxbg4[] = "#7c6f64";
+
+static const char accent[] = "#b8bb26";
+
+static const char *colors[][SchemeN][3] = {
+		/*               fg         bg         border   */
+	{
+		[SchemeNorm] = { gruvboxfg, gruvboxbg1, gruvboxfg},
+		[SchemeSel]  = { gruvboxfg, gruvboxbg1,  accent},
+	},
+	{
+		[SchemeNorm] = { gruvboxfg, gruvboxbg1, gruvboxfg},
+		[SchemeSel]  = { gruvboxfg, gruvboxfg,  accent},
+	}
 };
 
 
@@ -33,7 +50,6 @@ static const Rule rules[] = {
 	 */
 	/* class      instance    title       tags mask     isfloating   monitor */
 	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
-	{ "google-chrome", NULL,  NULL,       1 << 7,       0,           -1 },
 };
 
 /* layout(s) */
@@ -63,23 +79,29 @@ static const Layout layouts[] = {
 /* applications */
 #define TERMINAL_EMULATOR "alacritty"
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
+static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", gruvboxbg1, "-nf", gruvboxfg, "-sb", accent, "-sf", gruvboxfg, NULL };
 static const char *termcmd[]  = { TERMINAL_EMULATOR, NULL };
 static const char *browsercmd[]  = { "firefox",  NULL };
 static const char *youtubecmd[]  = { "firefox", "--new-window", "https://youtube.com", NULL };
-static const char *discordcmd[]  = { "firefox", "--new-window", "https://discord.com/channels/@me", NULL };
+static const char *discordcmd[]  = { "discord", NULL };
 static const char *githubcmd[]  = { "firefox", "--new-window", "https://github.com/EggbertFluffle", NULL };
 static const char *schoolemailcmd[]  = { "firefox", "--new-window", "https://outlook.office365.com/mail/", NULL };
 static const char *spotifycmd[]  = { "firefox", "--new-window", "https://open.spotify.com", NULL };
+static const char *emacscmd[]  = { "emacsclient", "-r", NULL };
 static const char *processmonitorcmd[] = { TERMINAL_EMULATOR, "-e", "btop", NULL };
 static const char *bluetuithcmd[] = { TERMINAL_EMULATOR, "-e", "bluetuith", NULL };
 static const char *wirelesscontrolscmd[] = { "iwgtk", NULL };
-static const char *screenshotcmd[] = { "scrot", "-s", "-f", NULL };
+static const char *audiocontrolscmd[] = { "pavucontrol", NULL };
+// static const char *screenshotcmd[] = { "scrot", "-s", "-f", NULL };
+// Can you take the stirng below and seperate it into an array of string for every space? like the one above
+// static const char *screenshotcmd[] = { "scrot -s -e 'xclip -selection clipboard -target image/png -i $f'", NULL};
+static const char *screenshotcmd[] = { "scrot", "-s", "-e", "'xclip -selection clipboard -target image/png -i $f'", NULL};
+static const char *boomerzoomcmd[] = { "boomer", NULL };
 
 /* volume */
-static const char *volupcmd[] = { "amixer", "sset", "Master", "3%+", NULL };
-static const char *voldowncmd[] = { "amixer", "sset", "Master", "3%-", NULL };
-static const char *mutecmd[] = { "amixer", "sset", "Master", "toggle", NULL };
+static const char *volupcmd[] = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "+3%", NULL };
+static const char *voldowncmd[] = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "-3%", NULL };
+// static const char *mutevolume[] = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "-3%", NULL };
 
 /* brightness */
 static const char *brightnessupcmd[] = { "brightnessctl", "-d", "intel_backlight", "set", "2%+", NULL };
@@ -103,6 +125,9 @@ static const Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_b,      spawn,          {.v = bluetuithcmd } },
 	{ MODKEY|ShiftMask,             XK_s,      spawn,          {.v = screenshotcmd } },
 	{ MODKEY|ShiftMask,             XK_w,      spawn,          {.v = wirelesscontrolscmd } },
+	{ MODKEY|ShiftMask,             XK_a,      spawn,          {.v = audiocontrolscmd} },
+	{ MODKEY|ShiftMask,             XK_e,      spawn,          {.v = emacscmd } },
+	{ MODKEY|ShiftMask,             XK_z,      spawn,          {.v = boomerzoomcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
@@ -137,7 +162,7 @@ static const Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
 	{ MODKEY|ShiftMask,  XK_bracketright,      spawn,          {.v = volupcmd } },
 	{ MODKEY|ShiftMask,   XK_bracketleft,      spawn,          {.v = voldowncmd } },
-	{ MODKEY|ShiftMask,     XK_backslash,      spawn,          {.v = mutecmd } },
+//  { MODKEY|ShiftMask,     XK_backslash,      spawn,          {.v = mutecmd } },
 	{ MODKEY,            XK_bracketright,      spawn,          {.v = brightnessupcmd } },
 	{ MODKEY,             XK_bracketleft,      spawn,          {.v = brightnessdowncmd } },
 	{ MODKEY,             XF86XK_PowerOff,     spawn,          {.v = sleepcmd } },

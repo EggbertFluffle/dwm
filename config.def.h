@@ -1,32 +1,34 @@
 /* See LICENSE file for copyright and license details. */
 
 #include <X11/XF86keysym.h>
+#include <memory.h>
 
 /* appearance */
-static const unsigned int borderpx  = 1;        /* border pixel of windows */
-static const unsigned int gappx     = 12;        /* gaps between windows */
+static const unsigned int borderpx  = 2;        /* border pixel of windows */
+static const unsigned int gappx     = 8;        /* gaps between windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
-static const char *fonts[]          = { "Iosevka :size=16" };
-static const char dmenufont[]       = "Iosevka :size=16";
+static const int user_bh            = 0;        /* 0 means that dwm will calculate bar height, >= 1 means dwm will user_bh as bar height */
+static const char *fonts[]          = { "minecraft :size=16" };
+static const char dmenufont[]       = "Monocraft :size=16";
 static const char col_gray1[]       = "#282828";
 static const char col_gray2[]       = "#504945";
 static const char col_gray3[]       = "#bdae93";
 static const char col_gray4[]       = "#ebdbb2";
 static const char col_cyan[]        = "#cc241d";
-static const char *colors[][3]      = {
-	/*               fg         bg         border   */
-	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
-	[SchemeSel]  = { col_gray4, col_gray2,  col_cyan  },
+static const char *colors[][SchemeN][3] = {
+		/*               fg         bg         border   */
+	{ /* dark */
+		[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
+		[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
+	},
+	{ /* light */
+		[SchemeNorm] = { col_gray2, col_gray4, col_gray3 },
+		[SchemeSel]  = { col_gray1, col_cyan,  col_cyan  },
+	},
 };
 
-/* volume */
-// static const char *mutecmd[] = { "amixer", "-D", "pulse", "sset", "Master", "toggle", NULL };
-// static const char *volupcmd[] = { "amixer", "-D", "pulse", "sset", "Master", "3%+", NULL };
-// static const char *voldowncmd[] = { "amixer", "-D", "pulse", "sset", "Master", "3%-", NULL };
-static const char *voldowncmd[] = { "xgamma",  "-gamma", "0.5", NULL };
-static const char *volupcmd[] = { "xgamma",  "-gamma", "1", NULL };
 
 /* tagging */
 static const char *tags[] = { "1", "2", "3", "4", "5" };
@@ -38,7 +40,6 @@ static const Rule rules[] = {
 	 */
 	/* class      instance    title       tags mask     isfloating   monitor */
 	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
-	{ "google-chrome", NULL,  NULL,       1 << 7,       0,           -1 },
 };
 
 /* layout(s) */
@@ -65,13 +66,35 @@ static const Layout layouts[] = {
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
-/* commands */
+/* applications */
+#define TERMINAL_EMULATOR "alacritty"
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
-static const char *termcmd[]  = { "st", NULL };
-static const char *browsercmd[]  = { "firefox", NULL };
-static const char *youtubecmd[]  = { "firefox", "https://youtube.com", NULL };
-static const char *discordcmd[]  = { "firefox", "https://discord.com/channels/@me", NULL };
+static const char *termcmd[]  = { TERMINAL_EMULATOR, NULL };
+static const char *browsercmd[]  = { "firefox",  NULL };
+static const char *youtubecmd[]  = { "firefox", "--new-window", "https://youtube.com", NULL };
+static const char *discordcmd[]  = { "firefox", "--new-window", "https://discord.com/channels/@me", NULL };
+static const char *githubcmd[]  = { "firefox", "--new-window", "https://github.com/EggbertFluffle", NULL };
+static const char *schoolemailcmd[]  = { "firefox", "--new-window", "https://outlook.office365.com/mail/", NULL };
+static const char *spotifycmd[]  = { "firefox", "--new-window", "https://open.spotify.com", NULL };
+static const char *processmonitorcmd[] = { TERMINAL_EMULATOR, "-e", "btop", NULL };
+static const char *bluetuithcmd[] = { TERMINAL_EMULATOR, "-e", "bluetuith", NULL };
+static const char *wirelesscontrolscmd[] = { "iwgtk", NULL };
+static const char *screenshotcmd[] = { "scrot", "-s", "-f", NULL };
+static const char *boomerzoomcmd[] = { "boomer", NULL };
+
+/* volume */
+static const char *volupcmd[] = { "amixer", "sset", "Master", "3%+", NULL };
+static const char *voldowncmd[] = { "amixer", "sset", "Master", "3%-", NULL };
+static const char *mutecmd[] = { "amixer", "sset", "Master", "toggle", NULL };
+
+/* brightness */
+static const char *brightnessupcmd[] = { "brightnessctl", "-d", "intel_backlight", "set", "2%+", NULL };
+static const char *brightnessdowncmd[] = { "brightnessctl", "-d", "intel_backlight", "set", "2%-", NULL };
+
+/* power */
+static const char *sleepcmd[] = { "sudo", "zzz", NULL };
+static const char *poweroffcmd[] = { "sudo", "shutdown", "-h", "now", NULL };
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
@@ -80,6 +103,14 @@ static const Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_i,      spawn,          {.v = browsercmd } },
 	{ MODKEY|ShiftMask,             XK_y,      spawn,          {.v = youtubecmd } },
 	{ MODKEY|ShiftMask,             XK_d,      spawn,          {.v = discordcmd } },
+	{ MODKEY|ShiftMask,             XK_g,      spawn,          {.v = githubcmd } },
+	{ MODKEY|ShiftMask,             XK_m,      spawn,          {.v = schoolemailcmd } },
+	{ MODKEY|ShiftMask,             XK_t,      spawn,          {.v = spotifycmd } },
+	{ MODKEY|ShiftMask,             XK_p,      spawn,          {.v = processmonitorcmd } },
+	{ MODKEY|ShiftMask,             XK_b,      spawn,          {.v = bluetuithcmd } },
+	{ MODKEY|ShiftMask,             XK_s,      spawn,          {.v = screenshotcmd } },
+	{ MODKEY|ShiftMask,             XK_w,      spawn,          {.v = wirelesscontrolscmd } },
+	{ MODKEY|ShiftMask,             XK_z,      spawn,          {.v = boomerzoomcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
@@ -112,9 +143,13 @@ static const Key keys[] = {
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
 	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
-	{ MODKEY,                      XK_F3,      spawn,          {.v = volupcmd } },
-	{ MODKEY,                      XK_F2,      spawn,          {.v = voldowncmd } }
-	// { MODKEY,           XF86XK_AudioMute,      spawn,          {.v = mutecmd } }
+	{ MODKEY|ShiftMask,  XK_bracketright,      spawn,          {.v = volupcmd } },
+	{ MODKEY|ShiftMask,   XK_bracketleft,      spawn,          {.v = voldowncmd } },
+	{ MODKEY|ShiftMask,     XK_backslash,      spawn,          {.v = mutecmd } },
+	{ MODKEY,            XK_bracketright,      spawn,          {.v = brightnessupcmd } },
+	{ MODKEY,             XK_bracketleft,      spawn,          {.v = brightnessdowncmd } },
+	{ MODKEY,             XF86XK_PowerOff,     spawn,          {.v = sleepcmd } },
+	{ MODKEY|ShiftMask,   XF86XK_PowerOff,     spawn,          {.v = poweroffcmd } }
 };
 
 /* button definitions */
