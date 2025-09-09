@@ -5,7 +5,7 @@
 
 /* appearance */
 static const unsigned int borderpx  = 2;        /* border pixel of windows */
-static const unsigned int gappx     = 8;        /* gaps between windows */
+static const unsigned int gappx     = 0;        /* gaps between windows */
 static const unsigned int snap      = 32; /* light */       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
@@ -41,7 +41,7 @@ static const char *colors[][SchemeN][3] = {
 
 
 /* tagging */
-static const char *tags[] = { "1", "2", "3", "4", "5" };
+static const char *tags[] = { "A", "S", "D", "F", "J", "K", "L", ";" };
 
 static const Rule rules[] = {
 	/* xprop(1):
@@ -66,7 +66,7 @@ static const Layout layouts[] = {
 };
 
 /* key definitions */
-#define MODKEY Mod1Mask
+#define MODKEY Mod4Mask
 #define TAGKEYS(KEY,TAG) \
 	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
 	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
@@ -77,16 +77,18 @@ static const Layout layouts[] = {
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
 /* applications */
+#define WEB_BROWSER "zen"
 #define TERMINAL_EMULATOR "alacritty"
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", gruvboxbg1, "-nf", gruvboxfg, "-sb", accent, "-sf", gruvboxfg, NULL };
 static const char *termcmd[]  = { TERMINAL_EMULATOR, NULL };
-static const char *browsercmd[]  = { "firefox",  NULL };
-static const char *youtubecmd[]  = { "firefox", "--new-window", "https://youtube.com", NULL };
+static const char *browsercmd[]  = { WEB_BROWSER,  NULL };
+static const char *youtubecmd[]  = { WEB_BROWSER, "--new-window", "https://youtube.com", NULL };
 static const char *discordcmd[]  = { "discord", NULL };
-static const char *githubcmd[]  = { "firefox", "--new-window", "https://github.com/EggbertFluffle", NULL };
-static const char *schoolemailcmd[]  = { "firefox", "--new-window", "https://outlook.office365.com/mail/", NULL };
-static const char *spotifycmd[]  = { "firefox", "--new-window", "https://open.spotify.com", NULL };
+static const char *claudecmd[]  = { WEB_BROWSER, "--new-window", "https://claude.ai/new", NULL };
+static const char *githubcmd[]  = { WEB_BROWSER, "--new-window", "https://github.com/EggbertFluffle", NULL };
+static const char *schoolemailcmd[]  = { WEB_BROWSER, "--new-window", "https://outlook.office365.com/mail/", NULL };
+static const char *spotifycmd[]  = { WEB_BROWSER, "--new-window", "https://open.spotify.com", NULL };
 static const char *emacscmd[]  = { "emacsclient", "-r", NULL };
 static const char *processmonitorcmd[] = { TERMINAL_EMULATOR, "-e", "btop", NULL };
 static const char *bluetuithcmd[] = { TERMINAL_EMULATOR, "-e", "bluetuith", NULL };
@@ -123,6 +125,7 @@ static const Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_t,      spawn,          {.v = spotifycmd } },
 	{ MODKEY|ShiftMask,             XK_p,      spawn,          {.v = processmonitorcmd } },
 	{ MODKEY|ShiftMask,             XK_b,      spawn,          {.v = bluetuithcmd } },
+	{ MODKEY|ShiftMask,             XK_l,      spawn,          {.v = claudecmd } },
 	{ MODKEY|ShiftMask,             XK_s,      spawn,          {.v = screenshotcmd } },
 	{ MODKEY|ShiftMask,             XK_w,      spawn,          {.v = wirelesscontrolscmd } },
 	{ MODKEY|ShiftMask,             XK_a,      spawn,          {.v = audiocontrolscmd} },
@@ -131,16 +134,13 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
-	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
-	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
-	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
-	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
+	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.02} },
+	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.02} },
 	{ MODKEY,                       XK_Return, zoom,           {0} },
 	{ MODKEY,                       XK_Tab,    view,           {0} },
 	{ MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
 	{ MODKEY|ShiftMask,             XK_f,      togglefullscr,  {0} },
 	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
-	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
 	{ MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
 	{ MODKEY,                       XK_space,  setlayout,      {0} },
 	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
@@ -150,15 +150,14 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
-	TAGKEYS(                        XK_1,                      0)
-	TAGKEYS(                        XK_2,                      1)
-	TAGKEYS(                        XK_3,                      2)
-	TAGKEYS(                        XK_4,                      3)
-	TAGKEYS(                        XK_5,                      4)
-	TAGKEYS(                        XK_6,                      5)
-	TAGKEYS(                        XK_7,                      6)
-	TAGKEYS(                        XK_8,                      7)
-	TAGKEYS(                        XK_9,                      8)
+	TAGKEYS(                        XK_a,                      0)
+	TAGKEYS(                        XK_s,                      1)
+	TAGKEYS(                        XK_d,                      2)
+	TAGKEYS(                        XK_f,                      3)
+	TAGKEYS(                        XK_j,                      4)
+	TAGKEYS(                        XK_k,                      5)
+	TAGKEYS(                        XK_l,                      6)
+	TAGKEYS(                        XK_semicolon,              7)
 	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
 	{ MODKEY|ShiftMask,  XK_bracketright,      spawn,          {.v = volupcmd } },
 	{ MODKEY|ShiftMask,   XK_bracketleft,      spawn,          {.v = voldowncmd } },
